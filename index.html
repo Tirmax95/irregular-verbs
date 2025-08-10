@@ -297,6 +297,13 @@
               <h2 class="text-xl font-bold">Opción múltiple</h2>
               <div class="text-sm text-slate-500">Puntuación: <strong id="mc-score">0</strong></div>
             </div>
+            
+            <div class="mb-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <p class="text-xs text-slate-500 font-medium mb-2">Atajos de teclado:</p>
+              <div id="mc-shortcuts" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-400">
+                <!-- Los atajos se llenarán dinámicamente -->
+              </div>
+            </div>
             <div id="mc-card" class="space-y-4">
               <p class="text-slate-600 dark:text-slate-300">Infinitivo: <strong id="mc-inf" class="text-brand-600"></strong> — <strong id="mc-trans" class="text-brand-600"></strong></p>
               <div>
@@ -835,6 +842,18 @@
       `;
     }
 
+    function renderMultipleChoiceShortcuts() {
+      const shortcutsContainer = $('#mc-shortcuts');
+      if (!shortcutsContainer) return;
+      
+      shortcutsContainer.innerHTML = `
+        <div><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">1</kbd><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">2</kbd><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">3</kbd><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">4</kbd> Elegir pasado</div>
+        <div><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">Q</kbd><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">W</kbd><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">E</kbd><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">R</kbd> Elegir participio</div>
+        <div><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">Enter</kbd> Siguiente pregunta</div>
+        <div><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">S</kbd> Escuchar infinitivo</div>
+      `;
+    }
+
     // ============================
     // Multiple Choice
     // ============================
@@ -859,7 +878,12 @@
       const btn = document.createElement('button');
       btn.className = 'opt rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 hover:border-brand-400';
       btn.textContent = text;
-      btn.addEventListener('click', () => {
+      
+      // Agregar número de opción para los atajos de teclado
+      const optionIndex = parent.children.length;
+      btn.dataset.optionIndex = optionIndex;
+      
+      const selectOption = () => {
         $$('.opt[data-group=' + group + ']', parent).forEach(b => b.classList.remove('ring-2', 'ring-emerald-500', 'ring-rose-500'));
         btn.classList.add('ring-2', isCorrect ? 'ring-emerald-500' : 'ring-rose-500');
         if (group === 'past') mc.selectedPast = isCorrect; else mc.selectedPart = isCorrect;
@@ -868,8 +892,11 @@
           if (mc.selectedPast && mc.selectedPart) { mc.score++; schedule(v, 'good'); } else { schedule(v, 'hard'); }
           $('#mc-score').textContent = mc.score;
         }
-      });
+      };
+      
+      btn.addEventListener('click', selectOption);
       btn.dataset.group = group;
+      btn.selectOption = selectOption; // Para poder llamarla desde los atajos
       parent.appendChild(btn);
     }
 
@@ -1069,6 +1096,48 @@
           typingShow();
         }
       });
+
+      // Listener global para la pestaña de opción múltiple
+      window.addEventListener('keydown', (e) => {
+        // Solo funcionar cuando la pestaña de opción múltiple esté activa
+        const mcTab = $('#tab-choice');
+        if (!mcTab || mcTab.classList.contains('hidden')) return;
+        if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+        
+        // Teclas 1-4 para seleccionar opciones de pasado simple
+        if (['1', '2', '3', '4'].includes(e.key)) {
+          e.preventDefault();
+          const optionIndex = parseInt(e.key) - 1;
+          const pastOptions = $$('#mc-opts-past .opt');
+          if (pastOptions[optionIndex]) {
+            pastOptions[optionIndex].selectOption();
+          }
+        }
+        
+        // Teclas Q, W, E, R para seleccionar opciones de participio
+        const participleKeys = { 'q': 0, 'w': 1, 'e': 2, 'r': 3 };
+        if (participleKeys.hasOwnProperty(e.key.toLowerCase())) {
+          e.preventDefault();
+          const optionIndex = participleKeys[e.key.toLowerCase()];
+          const partOptions = $$('#mc-opts-part .opt');
+          if (partOptions[optionIndex]) {
+            partOptions[optionIndex].selectOption();
+          }
+        }
+        
+        // Enter para siguiente pregunta
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          mcNext();
+        }
+        
+        // S para escuchar
+        if (e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          const v = mc.current();
+          if (v) speak(v.infinitive);
+        }
+      });
       
       $('#t-input-past').addEventListener('keydown', handleTypingKeydown);
       $('#t-input-part').addEventListener('keydown', handleTypingKeydown);
@@ -1132,6 +1201,7 @@
       // Render shortcuts for sections
       renderTypingShortcuts();
       renderFlashcardShortcuts();
+      renderMultipleChoiceShortcuts();
       // Bind events
       bindEvents();
       // Default tab
