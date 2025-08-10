@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verbos Irregulares — Flashcards + Juegos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind on CDN: activar dark mode por clase y pequeños ajustes de tema
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Ubuntu", "Cantarell", "Noto Sans", "Helvetica Neue", "Arial", "\"Apple Color Emoji\"", "\"Segoe UI Emoji\""],
+          },
+          boxShadow: {
+            soft: '0 2px 30px rgba(0,0,0,0.08)'
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81'
+            }
+          },
+          keyframes: {
+            fadeInUp: {
+              '0%': { opacity: 0, transform: 'translateY(10px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' }
+            },
+            cardFlip: {
+              '0%': { transform: 'rotateY(0deg)' },
+              '100%': { transform: 'rotateY(180deg)' }
+            },
+            pop: {
+              '0%': { transform: 'scale(0.95)', opacity: 0 },
+              '100%': { transform: 'scale(1)', opacity: 1 }
+            }
+          },
+          animation: {
+            fadeInUp: 'fadeInUp 300ms ease-out',
+            pop: 'pop 200ms ease-out'
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* 3D flip card */
+    .flip-container { perspective: 1200px; }
+    .flip-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .6s; }
+    .flipped .flip-inner { transform: rotateY(180deg); }
+    .flip-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+    .flip-back { transform: rotateY(180deg); }
+
+    /* Hide number input arrows iOS/Chrome for clean quiz fields */
+    input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+    /* Nice scrollbar */
+    .nice-scrollbar::-webkit-scrollbar { width: 10px; height: 10px; }
+    .nice-scrollbar::-webkit-scrollbar-thumb { background: rgba(100,116,139,.35); border-radius: 9999px; }
+    .nice-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+
+<body class="h-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950 text-slate-800 dark:text-slate-100">
+  <div id="app" class="min-h-screen flex flex-col">
+    <!-- Topbar -->
+    <header class="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-white/60 bg-white/80 dark:bg-slate-900/70 border-b border-slate-200/70 dark:border-slate-800">
+      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div class="flex items-center gap-3">
+          <div class="h-9 w-9 grid place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-indigo-600 text-white shadow-soft">
+            <!-- book icon -->
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M20 22H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2H20v20z"/></svg>
+          </div>
+          <div>
+            <h1 class="text-lg sm:text-xl font-extrabold leading-tight">Verbos Irregulares — Flashcards & Juegos</h1>
+            <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">UI moderna, modo estudio (SRS), juegos y estadísticas. Offline-ready (LocalStorage).</p>
+          </div>
+        </div>
+        <div class="ml-auto flex items-center gap-2">
+          <!-- Buscar -->
+          <label class="relative hidden md:block">
+            <input id="search-input" type="text" placeholder="Buscar verbo o traducción..." class="w-64 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 pl-9 outline-none focus:ring-2 ring-brand-500/50" />
+            <svg class="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </label>
+          <!-- Dark toggle -->
+          <button id="theme-toggle" class="rounded-xl p-2 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Cambiar tema">
+            <span id="icon-sun" class="hidden dark:inline-block">🌙</span>
+            <span id="icon-moon" class="inline-block dark:hidden">☀️</span>
+          </button>
+          <!-- Reset progreso -->
+          <button id="reset-progress" class="rounded-xl px-3 py-2 text-sm font-semibold bg-rose-50 text-rose-700 border border-rose-100 hover:bg-rose-100 dark:bg-rose-400/10 dark:text-rose-300 dark:border-rose-400/20">Reiniciar progreso</button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <nav class="max-w-6xl mx-auto px-4 pb-2">
+        <div class="inline-flex gap-1 rounded-xl bg-slate-100/80 dark:bg-slate-800 p-1">
+          <button data-tab="flashcards" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold bg-white dark:bg-slate-900 shadow">Flashcards</button>
+          <button data-tab="typing" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold">Escribir</button>
+          <button data-tab="choice" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold">Opción múltiple</button>
+          <button data-tab="stats" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold">Estadísticas</button>
+          <button data-tab="config" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold">Config</button>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1">
+      <div class="max-w-6xl mx-auto px-4 py-6 space-y-8">
+        <!-- Row: info bar -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="rounded-2xl bg-white/80 dark:bg-slate-900/60 shadow-soft p-4">
+            <p class="text-xs text-slate-500">Debes hoy</p>
+            <p class="text-2xl font-extrabold" id="due-count">0</p>
+          </div>
+          <div class="rounded-2xl bg-white/80 dark:bg-slate-900/60 shadow-soft p-4">
+            <p class="text-xs text-slate-500">Revisados (hoy)</p>
+            <p class="text-2xl font-extrabold" id="reviewed-today">0</p>
+          </div>
+          <div class="rounded-2xl bg-white/80 dark:bg-slate-900/60 shadow-soft p-4">
+            <p class="text-xs text-slate-500">Precisión (hoy)</p>
+            <p class="text-2xl font-extrabold" id="accuracy-today">0%</p>
+          </div>
+          <div class="rounded-2xl bg-white/80 dark:bg-slate-900/60 shadow-soft p-4">
+            <p class="text-xs text-slate-500">Racha</p>
+            <p class="text-2xl font-extrabold" id="streak">0 🔥</p>
+          </div>
+        </section>
+
+        <!-- Flashcards Tab -->
+        <section id="tab-flashcards" class="tab-panel">
+          <div class="flex flex-col md:flex-row gap-6">
+            <!-- Card -->
+            <div class="md:flex-1 flip-container">
+              <div id="flashcard" class="flip-wrapper rounded-2xl bg-white dark:bg-slate-900 shadow-soft p-4 aspect-[3/2] cursor-pointer select-none">
+                <div class="flip-inner">
+                  <div class="flip-face grid place-items-center">
+                    <div class="text-center space-y-4 animate-fadeInUp">
+                      <p class="uppercase tracking-wider text-xs text-slate-500">Infinitivo</p>
+                      <div class="flex items-center justify-center gap-2">
+                        <span id="fc-inf" class="text-4xl md:text-5xl font-extrabold"></span>
+                        <button id="fc-speak-inf" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Escuchar infinitivo">🔈</button>
+                      </div>
+                      <p id="fc-trans" class="text-slate-500 dark:text-slate-400"></p>
+                      <p class="text-xs text-slate-500">Pulsa o presiona <kbd class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">espacio</kbd> para voltear</p>
+                    </div>
+                  </div>
+                  <div class="flip-face flip-back grid place-items-center">
+                    <div class="text-center space-y-3 animate-fadeInUp">
+                      <div>
+                        <p class="uppercase tracking-wider text-xs text-slate-500">Infinitivo</p>
+                        <div class="flex items-center justify-center gap-2">
+                          <span id="fc-back-inf" class="text-xl font-semibold"></span>
+                          <button id="fc-speak-inf-back" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Escuchar infinitivo">🔈</button>
+                        </div>
+                      </div>
+                      <div>
+                        <p class="uppercase tracking-wider text-xs text-slate-500">Pasado simple</p>
+                        <div class="flex items-center justify-center gap-2">
+                          <span id="fc-past" class="text-2xl font-bold text-brand-600"></span>
+                          <button id="fc-speak-past" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Escuchar pasado">🔈</button>
+                        </div>
+                      </div>
+                      <div>
+                        <p class="uppercase tracking-wider text-xs text-slate-500">Participio</p>
+                        <div class="flex items-center justify-center gap-2">
+                          <span id="fc-part" class="text-2xl font-bold text-brand-600"></span>
+                          <button id="fc-speak-part" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Escuchar participio">🔈</button>
+                        </div>
+                      </div>
+                      <div>
+                        <p class="uppercase tracking-wider text-xs text-slate-500">Ejemplos</p>
+                        <div class="max-w-md mx-auto text-sm text-slate-600 dark:text-slate-300 space-y-1">
+                          <p id="fc-ex1"></p>
+                          <p id="fc-ex2"></p>
+                          <p id="fc-ex3"></p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <button id="prev-btn" class="col-span-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-3 py-2">← Anterior</button>
+                <button id="random-btn" class="col-span-1 rounded-xl bg-indigo-50 text-brand-700 border border-brand-200 hover:bg-indigo-100 px-3 py-2">🎲 Aleatoria</button>
+                <button id="next-btn" class="col-span-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-3 py-2">Siguiente →</button>
+                <div class="col-span-2 flex items-center justify-end gap-2">
+                  <span id="counter-display" class="text-sm text-slate-500"></span>
+                </div>
+              </div>
+
+              <div class="mt-3 grid grid-cols-3 gap-2">
+                <button data-grade="hard" class="grade-btn rounded-xl px-3 py-2 bg-rose-50 text-rose-700 border border-rose-100 hover:bg-rose-100">Difícil</button>
+                <button data-grade="good" class="grade-btn rounded-xl px-3 py-2 bg-amber-50 text-amber-700 border border-amber-100 hover:bg-amber-100">Bien</button>
+                <button data-grade="easy" class="grade-btn rounded-xl px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100">Fácil</button>
+              </div>
+            </div>
+
+            <!-- Sidebar: ajustes rápidos + lista -->
+            <aside class="md:w-[340px] space-y-4">
+              <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-soft p-4 space-y-3">
+                <label class="flex items-center justify-between gap-3">
+                  <span class="text-sm">Practicar solo pendientes (SRS)</span>
+                  <input id="toggle-due-only" type="checkbox" class="w-5 h-5 accent-brand-600" />
+                </label>
+                <label class="flex items-center justify-between gap-3">
+                  <span class="text-sm">Auto audio al voltear</span>
+                  <input id="toggle-auto-tts" type="checkbox" class="w-5 h-5 accent-brand-600" />
+                </label>
+                <label class="flex items-center justify-between gap-3">
+                  <span class="text-sm">Velocidad TTS</span>
+                  <input id="range-tts" type="range" min="0.6" max="1.2" value="0.9" step="0.05" class="w-full" />
+                </label>
+                <p class="text-xs text-slate-500">Atajos: ← → navegar, espacio voltear, 1/2/3 calificar, S escuchar</p>
+              </div>
+
+              <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-soft p-4 max-h-[380px] overflow-auto nice-scrollbar">
+                <h3 class="font-semibold mb-2">Diccionario rápido</h3>
+                <ul id="quick-list" class="space-y-1 text-sm"></ul>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- Typing Tab (Escribir) -->
+        <section id="tab-typing" class="tab-panel hidden">
+          <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-soft p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <h2 class="text-xl font-bold">Juego: Completa las formas</h2>
+              <div class="flex items-center gap-2 text-sm">
+                <button id="typing-reset" class="rounded-lg px-3 py-1.5 bg-slate-100 dark:bg-slate-800">Reiniciar</button>
+                <button id="typing-next" class="rounded-lg px-3 py-1.5 bg-brand-600 text-white">Siguiente verbo</button>
+              </div>
+            </div>
+            <p class="text-slate-600 dark:text-slate-300">Infinitivo: <strong id="t-inf" class="text-brand-600"></strong> — <strong id="t-trans" class="text-brand-600"></strong></p>
+
+            <div class="mt-4 grid md:grid-cols-2 gap-4">
+              <div>
+                <label class="text-sm text-slate-500">Pasado simple</label>
+                <input id="t-input-past" type="text" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 outline-none focus:ring-2 ring-brand-500/50" placeholder="Escribe el Pasado Simple..." />
+                <div id="t-fb-past" class="h-5 text-sm mt-1"></div>
+              </div>
+              <div>
+                <label class="text-sm text-slate-500">Participio</label>
+                <input id="t-input-part" type="text" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 outline-none focus:ring-2 ring-brand-500/50" placeholder="Escribe el Participio..." />
+                <div id="t-fb-part" class="h-5 text-sm mt-1"></div>
+              </div>
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+              <button id="t-check" class="rounded-xl bg-emerald-600 text-white px-4 py-2">Comprobar</button>
+              <button id="t-show" class="rounded-xl bg-amber-500 text-white px-4 py-2">Mostrar respuestas</button>
+              <span class="ml-auto">Puntuación: <strong id="t-score">0</strong></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Multiple Choice Tab -->
+        <section id="tab-choice" class="tab-panel hidden">
+          <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-soft p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-bold">Opción múltiple</h2>
+              <div class="text-sm text-slate-500">Puntuación: <strong id="mc-score">0</strong></div>
+            </div>
+            <div id="mc-card" class="space-y-4">
+              <p class="text-slate-600 dark:text-slate-300">Infinitivo: <strong id="mc-inf" class="text-brand-600"></strong> — <strong id="mc-trans" class="text-brand-600"></strong></p>
+              <div>
+                <p class="text-sm text-slate-500 mb-1">Elige el <strong>Pasado simple</strong> correcto:</p>
+                <div id="mc-opts-past" class="grid sm:grid-cols-2 gap-2"></div>
+              </div>
+              <div>
+                <p class="text-sm text-slate-500 mb-1">Elige el <strong>Participio</strong> correcto:</p>
+                <div id="mc-opts-part" class="grid sm:grid-cols-2 gap-2"></div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="mc-next" class="rounded-xl bg-brand-600 text-white px-4 py-2">Siguiente</button>
+                <button id="mc-speak" class="rounded-xl px-3 py-2 bg-slate-100 dark:bg-slate-800">🔈 Escuchar</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Stats Tab -->
+        <section id="tab-stats" class="tab-panel hidden">
+          <div class="grid lg:grid-cols-2 gap-6">
+            <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-soft p-6">
+              <h3 class="font-bold mb-4">Rendimiento diario (últimos 7 días)</h3>
+              <div id="daily-bars" class="grid grid-cols-7 gap-2 items-end h-40"></div>
+              <div class="mt-2 grid grid-cols-7 text-xs text-center text-slate-500" id="daily-labels"></div>
+            </div>
+            <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-soft p-6">
+              <h3 class="font-bold mb-2">Distribución SRS</h3>
+              <div id="srs-dist" class="grid grid-cols-5 gap-3 mt-4">
+                <!-- Boxes placeholder -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Config Tab -->
+        <section id="tab-config" class="tab-panel hidden">
+          <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-soft p-6 space-y-6">
+            <div>
+              <h3 class="font-bold mb-2">Gestión de datos</h3>
+              <div class="flex flex-wrap items-center gap-2">
+                <button id="export-json" class="rounded-xl bg-slate-100 dark:bg-slate-800 px-3 py-2">Exportar JSON</button>
+                <label class="rounded-xl bg-slate-100 dark:bg-slate-800 px-3 py-2 cursor-pointer">
+                  Importar JSON
+                  <input id="import-json" type="file" accept="application/json" class="hidden" />
+                </label>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">Puedes exportar tu progreso y tus verbos personalizados y volver a importarlos.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <h4 class="font-semibold">Añadir verbo personalizado</h4>
+                <div class="grid grid-cols-2 gap-2">
+                  <input id="add-inf" type="text" placeholder="Infinitivo" class="rounded-xl px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
+                  <input id="add-trans" type="text" placeholder="Traducción" class="rounded-xl px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
+                  <input id="add-past" type="text" placeholder="Pasado simple (ej. learnt/learned)" class="col-span-2 rounded-xl px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
+                  <input id="add-part" type="text" placeholder="Participio (ej. learnt/learned)" class="col-span-2 rounded-xl px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
+                </div>
+                <button id="add-verb" class="mt-2 rounded-xl bg-emerald-600 text-white px-4 py-2">Agregar</button>
+                <p class="text-xs text-slate-500">Se aceptan múltiples variantes separadas por "/" y valores entre paréntesis. El TTS limpia pronunciaciones como <code>/rɛd/</code>.</p>
+              </div>
+
+              <div class="space-y-2">
+                <h4 class="font-semibold">Preferencias</h4>
+                <label class="flex items-center justify-between gap-3">
+                  <span class="text-sm">Modo oscuro por defecto</span>
+                  <input id="pref-dark-default" type="checkbox" class="w-5 h-5 accent-brand-600" />
+                </label>
+                <label class="flex items-center justify-between gap-3">
+                  <span class="text-sm">Solo estudiar pendientes (SRS) por defecto</span>
+                  <input id="pref-due-default" type="checkbox" class="w-5 h-5 accent-brand-600" />
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 py-4">
+      <div class="max-w-6xl mx-auto px-4 flex items-center justify-between">
+        <p>Hecho con ♥ para aprender verbos. Datos almacenados localmente.</p>
+        <p><span id="total-verbs">0</span> verbos disponibles</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- App Code -->
+  <script>
+    // ============================
+    // Datos base de verbos
+    // ============================
+    const BASE_VERBS = [
+      { infinitive: "be", pastSimple: "was/were", participle: "been", translation: "ser / estar" },
+      { infinitive: "become", pastSimple: "became", participle: "become", translation: "convertirse en" },
+      { infinitive: "begin", pastSimple: "began", participle: "begun", translation: "comenzar" },
+      { infinitive: "break", pastSimple: "broke", participle: "broken", translation: "romper" },
+      { infinitive: "bring", pastSimple: "brought", participle: "brought", translation: "traer" },
+      { infinitive: "build", pastSimple: "built", participle: "built", translation: "construir" },
+      { infinitive: "buy", pastSimple: "bought", participle: "bought", translation: "comprar" },
+      { infinitive: "can", pastSimple: "could", participle: "(been able to)", translation: "poder" },
+      { infinitive: "catch", pastSimple: "caught", participle: "caught", translation: "atrapar" },
+      { infinitive: "choose", pastSimple: "chose", participle: "chosen", translation: "elegir" },
+      { infinitive: "come", pastSimple: "came", participle: "come", translation: "venir" },
+      { infinitive: "cost", pastSimple: "cost", participle: "cost", translation: "costar" },
+      { infinitive: "cut", pastSimple: "cut", participle: "cut", translation: "cortar" },
+      { infinitive: "drink", pastSimple: "drank", participle: "drunk", translation: "beber" },
+      { infinitive: "eat", pastSimple: "ate", participle: "eaten", translation: "comer" },
+      { infinitive: "fall", pastSimple: "fell", participle: "fallen", translation: "caer" },
+      { infinitive: "feel", pastSimple: "felt", participle: "felt", translation: "sentir" },
+      { infinitive: "find", pastSimple: "found", participle: "found", translation: "encontrar" },
+      { infinitive: "forget", pastSimple: "forgot", participle: "forgotten", translation: "olvidar" },
+      { infinitive: "get", pastSimple: "got", participle: "got", translation: "conseguir / obtener" },
+      { infinitive: "give", pastSimple: "gave", participle: "given", translation: "dar" },
+      { infinitive: "go", pastSimple: "went", participle: "gone/been", translation: "ir" },
+      { infinitive: "grow", pastSimple: "grew", participle: "grown", translation: "crecer" },
+      { infinitive: "have", pastSimple: "had", participle: "had", translation: "tener" },
+      { infinitive: "hear", pastSimple: "heard", participle: "heard", translation: "oír" },
+      { infinitive: "hit", pastSimple: "hit", participle: "hit", translation: "golpear" },
+      { infinitive: "hold", pastSimple: "held", participle: "held", translation: "sostener" },
+      { infinitive: "hurt", pastSimple: "hurt", participle: "hurt", translation: "herir / doler" },
+      { infinitive: "keep", pastSimple: "kept", participle: "kept", translation: "mantener / guardar" },
+      { infinitive: "know", pastSimple: "knew", participle: "known", translation: "saber / conocer" },
+      { infinitive: "leave", pastSimple: "left", participle: "left", translation: "dejar / salir de" },
+      { infinitive: "lend", pastSimple: "lent", participle: "lent", translation: "prestar" },
+      { infinitive: "let", pastSimple: "let", participle: "let", translation: "permitir" },
+      { infinitive: "lose", pastSimple: "lost", participle: "lost", translation: "perder" },
+      { infinitive: "make", pastSimple: "made", participle: "made", translation: "hacer / fabricar" },
+      { infinitive: "mean", pastSimple: "meant", participle: "meant", translation: "significar" },
+      { infinitive: "meet", pastSimple: "met", participle: "met", translation: "conocer / reunirse" },
+      { infinitive: "must", pastSimple: "had to", participle: "(had to)", translation: "deber / tener que" },
+      { infinitive: "pay", pastSimple: "paid", participle: "paid", translation: "pagar" },
+      { infinitive: "put", pastSimple: "put", participle: "put", translation: "poner" },
+      { infinitive: "read", pastSimple: "read /rɛd/", participle: "read /rɛd/", translation: "leer" },
+      { infinitive: "ride", pastSimple: "rode", participle: "ridden", translation: "montar" },
+      { infinitive: "run", pastSimple: "ran", participle: "run", translation: "correr" },
+      { infinitive: "say", pastSimple: "said", participle: "said", translation: "decir" },
+      { infinitive: "see", pastSimple: "saw", participle: "seen", translation: "ver" },
+      { infinitive: "sell", pastSimple: "sold", participle: "sold", translation: "vender" },
+      { infinitive: "set", pastSimple: "set", participle: "set", translation: "colocar / establecer" },
+      { infinitive: "shut", pastSimple: "shut", participle: "shut", translation: "cerrar" },
+      { infinitive: "sing", pastSimple: "sang", participle: "sung", translation: "cantar" },
+      { infinitive: "sit", pastSimple: "sat", participle: "sat", translation: "sentarse" },
+      { infinitive: "sleep", pastSimple: "slept", participle: "slept", translation: "dormir" },
+      { infinitive: "speak", pastSimple: "spoke", participle: "spoken", translation: "hablar" },
+      { infinitive: "spell", pastSimple: "spelt/spelled", participle: "spelt/spelled", translation: "deletrear" },
+      { infinitive: "spend", pastSimple: "spent", participle: "spent", translation: "gastar / pasar (tiempo)" },
+      { infinitive: "stand", pastSimple: "stood", participle: "stood", translation: "estar de pie" },
+      { infinitive: "steal", pastSimple: "stole", participle: "stolen", translation: "robar" },
+      { infinitive: "take", pastSimple: "took", participle: "taken", translation: "tomar / llevar" },
+      { infinitive: "teach", pastSimple: "taught", participle: "taught", translation: "enseñar" },
+      { infinitive: "tell", pastSimple: "told", participle: "told", translation: "decir / contar" },
+      { infinitive: "think", pastSimple: "thought", participle: "thought", translation: "pensar" },
+      { infinitive: "throw", pastSimple: "threw", participle: "thrown", translation: "lanzar / tirar" },
+      { infinitive: "understand", pastSimple: "understood", participle: "understood", translation: "entender" },
+      { infinitive: "wear", pastSimple: "wore", participle: "worn", translation: "llevar puesto / usar ropa" },
+      { infinitive: "win", pastSimple: "won", participle: "won", translation: "ganar" },
+      { infinitive: "write", pastSimple: "wrote", participle: "written", translation: "escribir" }
+    ];
+
+    // ============================
+    // Utilidades
+    // ============================
+    const $ = (sel, root = document) => root.querySelector(sel);
+    const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+    const todayKey = () => new Date().toISOString().slice(0, 10);
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+    function shuffleInPlace(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // Limpia strings de respuestas: quita pronunciación /rɛd/, paréntesis y espacios extra.
+    function normalizeForm(s, { forPronunciation = false } = {}) {
+      if (!s) return '';
+      let x = String(s).trim();
+      // Si es "read /rɛd/" aceptamos "read"; para TTS pronunciamos "red" (si forPronunciation)
+      if (x.toLowerCase().includes('/rɛd/')) {
+        return forPronunciation ? 'red' : 'read';
+      }
+      // Si está entre paréntesis, quita paréntesis
+      if (x.startsWith('(') && x.endsWith(')')) x = x.slice(1, -1);
+      // Recorta espacios alrededor de '/'
+      x = x.replace(/\s*\/\s*/g, '/');
+      // Quita duplicados de espacios
+      x = x.replace(/\s+/g, ' ').trim();
+      return x;
+    }
+
+    function parseOptions(formString) {
+      if (!formString) return [];
+      const cleaned = normalizeForm(formString);
+      return cleaned.split('/')
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean);
+    }
+
+    function speak(text, lang = 'en-US') {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = lang;
+      u.rate = settings.ttsRate || 0.9;
+      const voices = window.speechSynthesis.getVoices();
+      const v = voices.find(v => v.lang.startsWith('en-') && v.name.toLowerCase().includes('google'))
+        || voices.find(v => v.lang.startsWith('en-') && v.default)
+        || voices.find(v => v.lang.startsWith('en-'));
+      if (v) u.voice = v;
+      window.speechSynthesis.speak(u);
+    }
+
+    // ============================
+    // Estado y almacenamiento
+    // ============================
+    const LS_KEYS = {
+      verbs: 'irregular_verbs:data',
+      srs: 'irregular_verbs:srs',
+      settings: 'irregular_verbs:settings',
+      history: 'irregular_verbs:history',
+      streak: 'irregular_verbs:streak'
+    };
+
+    function loadJSON(key, fallback) {
+      try { const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; } catch { return fallback; }
+    }
+    function saveJSON(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+
+    let verbs = loadJSON(LS_KEYS.verbs, BASE_VERBS);
+    let srs = loadJSON(LS_KEYS.srs, {}); // { [id]: { box, dueAt, stats: { seen, correct, wrong } } }
+    let settings = loadJSON(LS_KEYS.settings, { darkDefault: false, dueOnlyDefault: false, autoTts: false, ttsRate: 0.9 });
+    let history = loadJSON(LS_KEYS.history, {}); // { 'YYYY-MM-DD': { reviewed, correct } }
+    let streak = loadJSON(LS_KEYS.streak, { lastDay: null, count: 0 });
+
+    // Normaliza y asigna IDs
+    function ensureIds() {
+      verbs.forEach((v, idx) => { if (!v.id) v.id = `${v.infinitive.toLowerCase()}-${idx}`; });
+    }
+    ensureIds();
+
+    // ============================
+    // Lógica SRS (Leitner simplificado)
+    // ============================
+    const BOX_INTERVALS = { 1: 0, 2: 1, 3: 3, 4: 7, 5: 16 }; // días
+
+    function nowTs() { return Date.now(); }
+    function daysFromNow(n) { return nowTs() + n * 24 * 60 * 60 * 1000; }
+
+    function getCardState(v) {
+      const rec = srs[v.id] || { box: 1, dueAt: 0, stats: { seen: 0, correct: 0, wrong: 0 } };
+      return rec;
+    }
+
+    function schedule(v, grade) { // hard/good/easy
+      const rec = getCardState(v);
+      rec.stats.seen++;
+      const isCorrect = grade !== 'hard';
+      if (isCorrect) rec.stats.correct++; else rec.stats.wrong++;
+      let box = rec.box;
+      if (grade === 'hard') box = Math.max(1, box - 1);
+      if (grade === 'good') box = Math.min(5, box + 1);
+      if (grade === 'easy') box = Math.min(5, box + 2);
+      rec.box = box;
+      rec.dueAt = daysFromNow(BOX_INTERVALS[box]);
+      srs[v.id] = rec;
+      saveJSON(LS_KEYS.srs, srs);
+      // actualizar historial
+      const k = todayKey();
+      history[k] = history[k] || { reviewed: 0, correct: 0 };
+      history[k].reviewed++;
+      if (isCorrect) history[k].correct++;
+      saveJSON(LS_KEYS.history, history);
+      updateStreak();
+    }
+
+    function getDue(list = verbs) {
+      const now = nowTs();
+      return list.filter(v => (getCardState(v).dueAt || 0) <= now);
+    }
+
+    function updateStreak() {
+      const k = todayKey();
+      if (history[k] && history[k].reviewed > 0) {
+        if (streak.lastDay === k) return;
+        if (!streak.lastDay) {
+          streak.lastDay = k; streak.count = 1;
+        } else {
+          const prev = new Date(streak.lastDay);
+          const today = new Date(k);
+          const diffDays = Math.round((today - prev) / (1000 * 60 * 60 * 24));
+          streak.count = diffDays === 1 ? streak.count + 1 : (diffDays === 0 ? streak.count : 1);
+          streak.lastDay = k;
+        }
+        saveJSON(LS_KEYS.streak, streak);
+      }
+    }
+
+    // ============================
+    // Estado de UI
+    // ============================
+    const ui = {
+      idx: 0,
+      order: [...verbs.keys()],
+      dueOnly: settings.dueOnlyDefault || false,
+      autoTts: settings.autoTts || false,
+      ttsRate: settings.ttsRate || 0.9,
+      currentVerb() { return verbs[this.order[this.idx]]; }
+    };
+
+    function reshuffleOrder() {
+      ui.order = verbs.map((_, i) => i);
+      if (ui.dueOnly) {
+        const indices = verbs.map((v, i) => ({ v, i })).filter(({ v }) => getDue([v]).length);
+        ui.order = indices.map(x => x.i);
+      }
+      shuffleInPlace(ui.order);
+      ui.idx = 0;
+    }
+
+    // ============================
+    // Render helpers
+    // ============================
+    function renderTopStats() {
+      $('#due-count').textContent = getDue().length;
+      const k = todayKey();
+      const h = history[k] || { reviewed: 0, correct: 0 };
+      $('#reviewed-today').textContent = h.reviewed;
+      const acc = h.reviewed ? Math.round((h.correct / h.reviewed) * 100) : 0;
+      $('#accuracy-today').textContent = `${acc}%`;
+      $('#streak').textContent = `${streak.count || 0} 🔥`;
+      $('#total-verbs').textContent = verbs.length;
+    }
+
+    function buildExamples(v) {
+      const ps = parseOptions(v.pastSimple)[0] || v.pastSimple;
+      const pp = parseOptions(v.participle)[0] || v.participle;
+      return [
+        `I ${v.infinitive} every day.`,
+        `Yesterday I ${ps}.`,
+        `I have ${pp}.`
+      ];
+    }
+
+    function renderQuickList(filter = '') {
+      const ul = $('#quick-list');
+      ul.innerHTML = '';
+      const f = filter.trim().toLowerCase();
+      const arr = verbs.filter(v => !f || v.infinitive.toLowerCase().includes(f) || (v.translation || '').toLowerCase().includes(f));
+      for (const v of arr) {
+        const li = document.createElement('li');
+        li.className = 'flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer';
+        li.innerHTML = `<span><strong>${v.infinitive}</strong> <span class="text-slate-500">— ${v.translation}</span></span><span class="text-xs text-slate-400">${getCardState(v).box ? 'B' + getCardState(v).box : ''}</span>`;
+        li.addEventListener('click', () => {
+          const idx = verbs.findIndex(x => x.id === v.id);
+          ui.order = [idx]; ui.idx = 0; renderFlashcard();
+        });
+        ul.appendChild(li);
+      }
+    }
+
+    // ============================
+    // Flashcards
+    // ============================
+    function renderFlashcard() {
+      const v = ui.currentVerb();
+      if (!v) { $('#fc-inf').textContent = '—'; return; }
+      $('#fc-inf').textContent = v.infinitive;
+      $('#fc-back-inf').textContent = v.infinitive;
+      $('#fc-trans').textContent = v.translation || '';
+      $('#fc-past').textContent = normalizeForm(v.pastSimple);
+      $('#fc-part').textContent = normalizeForm(v.participle);
+      const [e1, e2, e3] = buildExamples(v);
+      $('#fc-ex1').textContent = e1; $('#fc-ex2').textContent = e2; $('#fc-ex3').textContent = e3;
+      $('#counter-display').textContent = `${ui.idx + 1} / ${ui.order.length}`;
+      $('#flashcard').classList.remove('flipped');
+      if (ui.autoTts) speak(v.infinitive);
+    }
+
+    function flipCard() { $('#flashcard').classList.toggle('flipped'); if (ui.autoTts) { const v = ui.currentVerb(); speak(parseOptions(v.pastSimple)[0] || v.pastSimple); speak(parseOptions(v.participle)[0] || v.participle); } }
+
+    function nav(delta) {
+      ui.idx = clamp(ui.idx + delta, 0, ui.order.length - 1);
+      renderFlashcard();
+    }
+
+    function randomCard() {
+      ui.idx = randInt(0, ui.order.length - 1);
+      renderFlashcard();
+    }
+
+    function gradeCurrent(grade) {
+      const v = ui.currentVerb();
+      if (!v) return;
+      schedule(v, grade);
+      renderTopStats();
+      nav(+1);
+    }
+
+    // ============================
+    // Typing (Escribir)
+    // ============================
+    const typing = {
+      order: [],
+      idx: 0,
+      score: 0,
+      answered: false,
+      current() { return verbs[this.order[this.idx]]; }
+    };
+
+    function typingStart() {
+      typing.order = verbs.map((_, i) => i);
+      shuffleInPlace(typing.order);
+      typing.idx = 0; typing.score = 0; typing.answered = false;
+      typingLoad();
+    }
+
+    function isCorrectInput(user, correctStr) {
+      const u = normalizeForm(user).toLowerCase();
+      const opts = parseOptions(correctStr);
+      return opts.includes(u);
+    }
+
+    function typingLoad() {
+      const v = typing.current(); if (!v) return;
+      $('#t-inf').textContent = v.infinitive; $('#t-trans').textContent = v.translation || '';
+      $('#t-input-past').value = ''; $('#t-input-part').value = '';
+      $('#t-fb-past').textContent = ''; $('#t-fb-part').textContent = '';
+      $('#t-score').textContent = typing.score;
+      typing.answered = false;
+      $('#t-input-past').disabled = false; $('#t-input-part').disabled = false;
+      $('#t-check').disabled = false; $('#t-show').disabled = false;
+      $('#t-input-past').focus();
+    }
+
+    function typingCheck() {
+      if (typing.answered) return;
+      const v = typing.current();
+      const p = $('#t-input-past').value; const pp = $('#t-input-part').value;
+      const pastOk = isCorrectInput(p, v.pastSimple);
+      const partOk = isCorrectInput(pp, v.participle);
+      $('#t-fb-past').textContent = pastOk ? '¡Correcto!' : `Incorrecto → ${parseOptions(v.pastSimple)[0] || v.pastSimple}`;
+      $('#t-fb-past').className = `h-5 text-sm ${pastOk ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}`;
+      $('#t-fb-part').textContent = partOk ? '¡Correcto!' : `Incorrecto → ${parseOptions(v.participle)[0] || v.participle}`;
+      $('#t-fb-part').className = `h-5 text-sm ${partOk ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}`;
+      if (pastOk && partOk) { typing.score++; schedule(v, 'good'); } else { schedule(v, 'hard'); }
+      $('#t-score').textContent = typing.score;
+      typing.answered = true;
+      $('#t-check').disabled = true; $('#t-show').disabled = true;
+      $('#t-input-past').disabled = true; $('#t-input-part').disabled = true;
+      renderTopStats();
+    }
+
+    function typingShow() {
+      if (typing.answered) return;
+      const v = typing.current();
+      $('#t-input-past').value = parseOptions(v.pastSimple)[0] || v.pastSimple;
+      $('#t-input-part').value = parseOptions(v.participle)[0] || v.participle;
+      typing.answered = true;
+      $('#t-check').disabled = true; $('#t-show').disabled = true;
+      $('#t-input-past').disabled = true; $('#t-input-part').disabled = true;
+    }
+
+    function typingNext() { typing.idx = (typing.idx + 1) % typing.order.length; typingLoad(); }
+
+    // ============================
+    // Multiple Choice
+    // ============================
+    const mc = { order: [], idx: 0, score: 0, selectedPast: null, selectedPart: null, current() { return verbs[this.order[this.idx]]; } };
+
+    function mcStart() {
+      mc.order = verbs.map((_, i) => i);
+      shuffleInPlace(mc.order); mc.idx = 0; mc.score = 0; mc.selectedPast = mc.selectedPart = null; mcLoad();
+    }
+
+    function buildOptions(correct, picker) {
+      const opts = new Set([normalizeForm(parseOptions(correct)[0] || correct).toLowerCase()]);
+      while (opts.size < 4) {
+        const r = picker();
+        const pick = normalizeForm(parseOptions(r)[0] || r).toLowerCase();
+        opts.add(pick);
+      }
+      return shuffleInPlace([...opts]);
+    }
+
+    function renderOption(parent, text, group, isCorrect) {
+      const btn = document.createElement('button');
+      btn.className = 'opt rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 hover:border-brand-400';
+      btn.textContent = text;
+      btn.addEventListener('click', () => {
+        $$('.opt[data-group=' + group + ']', parent).forEach(b => b.classList.remove('ring-2', 'ring-emerald-500', 'ring-rose-500'));
+        btn.classList.add('ring-2', isCorrect ? 'ring-emerald-500' : 'ring-rose-500');
+        if (group === 'past') mc.selectedPast = isCorrect; else mc.selectedPart = isCorrect;
+        if (mc.selectedPast !== null && mc.selectedPart !== null) {
+          const v = mc.current();
+          if (mc.selectedPast && mc.selectedPart) { mc.score++; schedule(v, 'good'); } else { schedule(v, 'hard'); }
+          $('#mc-score').textContent = mc.score;
+        }
+      });
+      btn.dataset.group = group;
+      parent.appendChild(btn);
+    }
+
+    function mcLoad() {
+      const v = mc.current(); if (!v) return;
+      $('#mc-inf').textContent = v.infinitive; $('#mc-trans').textContent = v.translation || '';
+      const pastOpts = buildOptions(v.pastSimple, () => verbs[randInt(0, verbs.length - 1)].pastSimple);
+      const partOpts = buildOptions(v.participle, () => verbs[randInt(0, verbs.length - 1)].participle);
+      const pastParent = $('#mc-opts-past'); const partParent = $('#mc-opts-part');
+      pastParent.innerHTML = ''; partParent.innerHTML = '';
+      for (const o of pastOpts) renderOption(pastParent, o, 'past', parseOptions(v.pastSimple).includes(o));
+      for (const o of partOpts) renderOption(partParent, o, 'part', parseOptions(v.participle).includes(o));
+      mc.selectedPast = mc.selectedPart = null;
+    }
+
+    function mcNext() { mc.idx = (mc.idx + 1) % mc.order.length; mcLoad(); renderTopStats(); }
+
+    // ============================
+    // Estadísticas
+    // ============================
+    function renderStats() {
+      // barras diarias
+      const labels = []; const vals = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 86400000);
+        const k = d.toISOString().slice(0, 10);
+        labels.push(d.toLocaleDateString(undefined, { weekday: 'short' }));
+        vals.push(history[k]?.correct || 0);
+      }
+      const max = Math.max(1, ...vals);
+      const bars = $('#daily-bars'); const labs = $('#daily-labels'); bars.innerHTML = ''; labs.innerHTML = '';
+      vals.forEach(v => {
+        const h = Math.round((v / max) * 100);
+        const bar = document.createElement('div');
+        bar.className = 'rounded-xl bg-gradient-to-b from-brand-400 to-brand-600';
+        bar.style.height = h + '%';
+        bars.appendChild(bar);
+      });
+      labels.forEach(l => { const s = document.createElement('div'); s.textContent = l; labs.appendChild(s); });
+
+      // dist SRS
+      const dist = [1, 2, 3, 4, 5].map(box => verbs.filter(v => (srs[v.id]?.box || 1) === box).length);
+      const distWrap = $('#srs-dist'); distWrap.innerHTML = '';
+      dist.forEach((count, i) => {
+        const el = document.createElement('div');
+        el.className = 'rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 text-center';
+        el.innerHTML = `<div class="text-sm text-slate-500">Caja ${i + 1}</div><div class="mt-2 text-2xl font-extrabold">${count}</div>`;
+        distWrap.appendChild(el);
+      });
+    }
+
+    // ============================
+    // Config / CRUD
+    // ============================
+    function exportJson() {
+      const data = { verbs, srs, settings, history, streak };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'verbos_irregulares_backup.json'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    async function importJson(file) {
+      const text = await file.text();
+      try {
+        const data = JSON.parse(text);
+        if (!Array.isArray(data.verbs)) throw new Error('Formato inválido: verbs no es array');
+        verbs = data.verbs; ensureIds();
+        srs = data.srs || {}; settings = { ...settings, ...(data.settings || {}) };
+        history = data.history || {}; streak = data.streak || { lastDay: null, count: 0 };
+        saveJSON(LS_KEYS.verbs, verbs); saveJSON(LS_KEYS.srs, srs); saveJSON(LS_KEYS.settings, settings); saveJSON(LS_KEYS.history, history); saveJSON(LS_KEYS.streak, streak);
+        afterDataChange();
+        alert('Importación completa.');
+      } catch (e) { alert('Error al importar: ' + e.message); }
+    }
+
+    function addVerb() {
+      const inf = normalizeForm($('#add-inf').value);
+      const trans = $('#add-trans').value.trim();
+      const past = $('#add-past').value.trim();
+      const part = $('#add-part').value.trim();
+      if (!inf || !past || !part) { alert('Infinitivo, pasado y participio son obligatorios'); return; }
+      const newVerb = { id: `${inf}-${Date.now()}`, infinitive: inf, pastSimple: past, participle: part, translation: trans };
+      verbs.push(newVerb); saveJSON(LS_KEYS.verbs, verbs); afterDataChange();
+      $('#add-inf').value = $('#add-trans').value = $('#add-past').value = $('#add-part').value = '';
+      alert('Verbo añadido');
+    }
+
+    function afterDataChange() {
+      ui.order = verbs.map((_, i) => i); ui.idx = 0;
+      renderTopStats(); renderQuickList($('#search-input').value); renderFlashcard(); renderStats();
+      $('#total-verbs').textContent = verbs.length;
+    }
+
+    // ============================
+    // Tabs & Theme
+    // ============================
+    function setActiveTab(id) {
+      $$('.tab-panel').forEach(p => p.classList.add('hidden'));
+      $(`#tab-${id}`).classList.remove('hidden');
+      $$('.tab-btn').forEach(b => b.classList.remove('bg-white', 'dark:bg-slate-900', 'shadow'));
+      $(`.tab-btn[data-tab="${id}"]`).classList.add('bg-white', 'dark:bg-slate-900', 'shadow');
+      if (id === 'stats') renderStats();
+    }
+
+    function applyTheme(dark) {
+      const root = document.documentElement;
+      root.classList.toggle('dark', dark);
+      settings.darkDefault = !!dark; saveJSON(LS_KEYS.settings, settings);
+    }
+
+    function initTheme() {
+      const dark = settings.darkDefault || window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(dark);
+    }
+
+    // ============================
+    // Event Listeners (UI)
+    // ============================
+    function bindEvents() {
+      // Tabs
+      $$('.tab-btn').forEach(btn => btn.addEventListener('click', () => setActiveTab(btn.dataset.tab)));
+      // Theme toggle
+      $('#theme-toggle').addEventListener('click', () => applyTheme(!document.documentElement.classList.contains('dark')));
+      // Search
+      $('#search-input').addEventListener('input', (e) => renderQuickList(e.target.value));
+      // Quick nav
+      $('#prev-btn').addEventListener('click', () => nav(-1));
+      $('#next-btn').addEventListener('click', () => nav(+1));
+      $('#random-btn').addEventListener('click', randomCard);
+      // Flip
+      $('#flashcard').addEventListener('click', flipCard);
+      // Grade buttons
+      $$('.grade-btn').forEach(b => b.addEventListener('click', () => gradeCurrent(b.dataset.grade)));
+      // TTS
+      $('#fc-speak-inf').addEventListener('click', (e) => { e.stopPropagation(); const v = ui.currentVerb(); speak(normalizeForm(v.infinitive, { forPronunciation: true })); });
+      $('#fc-speak-inf-back').addEventListener('click', (e) => { e.stopPropagation(); const v = ui.currentVerb(); speak(normalizeForm(v.infinitive, { forPronunciation: true })); });
+      $('#fc-speak-past').addEventListener('click', (e) => { e.stopPropagation(); const v = ui.currentVerb(); speak(normalizeForm(parseOptions(v.pastSimple)[0] || v.pastSimple, { forPronunciation: true })); });
+      $('#fc-speak-part').addEventListener('click', (e) => { e.stopPropagation(); const v = ui.currentVerb(); speak(normalizeForm(parseOptions(v.participle)[0] || v.participle, { forPronunciation: true })); });
+      $('#mc-speak').addEventListener('click', () => { const v = mc.current(); speak(v.infinitive); });
+
+      // Toggles
+      $('#toggle-due-only').addEventListener('change', (e) => { ui.dueOnly = e.target.checked; reshuffleOrder(); renderFlashcard(); renderTopStats(); });
+      $('#toggle-auto-tts').addEventListener('change', (e) => { ui.autoTts = e.target.checked; settings.autoTts = ui.autoTts; saveJSON(LS_KEYS.settings, settings); });
+      $('#range-tts').addEventListener('input', (e) => { ui.ttsRate = Number(e.target.value); settings.ttsRate = ui.ttsRate; saveJSON(LS_KEYS.settings, settings); });
+
+      // Typing
+      $('#t-check').addEventListener('click', typingCheck);
+      $('#t-show').addEventListener('click', typingShow);
+      $('#typing-next').addEventListener('click', typingNext);
+      $('#typing-reset').addEventListener('click', typingStart);
+      $('#t-input-part').addEventListener('keypress', (e) => { if (e.key === 'Enter' && !$('#t-check').disabled) typingCheck(); });
+
+      // Multiple Choice
+      $('#mc-next').addEventListener('click', mcNext);
+
+      // Config
+      $('#export-json').addEventListener('click', exportJson);
+      $('#import-json').addEventListener('change', (e) => { if (e.target.files[0]) importJson(e.target.files[0]); });
+      $('#add-verb').addEventListener('click', addVerb);
+      $('#pref-dark-default').checked = !!settings.darkDefault;
+      $('#pref-dark-default').addEventListener('change', (e) => applyTheme(e.target.checked));
+      $('#pref-due-default').checked = !!settings.dueOnlyDefault;
+      $('#pref-due-default').addEventListener('change', (e) => { settings.dueOnlyDefault = e.target.checked; saveJSON(LS_KEYS.settings, settings); });
+
+      // Reset progreso
+      $('#reset-progress').addEventListener('click', () => {
+        if (confirm('Esto borrará tu progreso (SRS, historial y racha). ¿Continuar?')) {
+          srs = {}; history = {}; streak = { lastDay: null, count: 0 };
+          saveJSON(LS_KEYS.srs, srs); saveJSON(LS_KEYS.history, history); saveJSON(LS_KEYS.streak, streak);
+          renderTopStats(); renderStats();
+        }
+      });
+
+      // Keybindings
+      window.addEventListener('keydown', (e) => {
+        if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+        if (e.key === ' ') { e.preventDefault(); flipCard(); }
+        if (e.key === 'ArrowLeft') nav(-1);
+        if (e.key === 'ArrowRight') nav(+1);
+        if (e.key === '1') gradeCurrent('hard');
+        if (e.key === '2') gradeCurrent('good');
+        if (e.key === '3') gradeCurrent('easy');
+        if (e.key.toLowerCase() === 's') { const v = ui.currentVerb(); speak(v.infinitive); }
+      });
+    }
+
+    // ============================
+    // Init
+    // ============================
+    function init() {
+      initTheme();
+      // Defaults UI
+      $('#toggle-due-only').checked = !!ui.dueOnly;
+      $('#toggle-auto-tts').checked = !!ui.autoTts;
+      $('#range-tts').value = ui.ttsRate;
+      // Prepare orders
+      reshuffleOrder();
+      renderTopStats();
+      renderQuickList('');
+      renderFlashcard();
+      // start games
+      typingStart();
+      mcStart();
+      // Bind events
+      bindEvents();
+      // Default tab
+      setActiveTab('flashcards');
+      // Voices changed (Chrome async)
+      if ('speechSynthesis' in window && typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+        window.speechSynthesis.onvoiceschanged = () => { /* loaded */ };
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+
+</html>
