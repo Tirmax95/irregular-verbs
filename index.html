@@ -112,6 +112,10 @@
           <button data-tab="flashcards" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold bg-white dark:bg-slate-900 shadow">Flashcards</button>
           <button data-tab="typing" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold">Escribir</button>
           <button data-tab="choice" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold">Opción múltiple</button>
+          <button data-tab="problem" class="tab-btn px-2 sm:px-3 py-2 rounded-lg text-sm font-semibold relative">
+            📚 Problemáticos
+            <span id="problem-count-badge" class="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+          </button>
           <button data-tab="stats" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold">Estadísticas</button>
           <button data-tab="config" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold">Config</button>
         </div>
@@ -208,6 +212,13 @@
                 <button data-grade="good" class="grade-btn rounded-xl px-3 py-2 bg-amber-50 text-amber-700 border border-amber-100 hover:bg-amber-100">Bien</button>
                 <button data-grade="easy" class="grade-btn rounded-xl px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100">Fácil</button>
               </div>
+              
+              <div class="mt-3 flex items-center justify-center">
+                <button id="toggle-problem-verb" class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border transition-all">
+                  <span id="problem-icon">📌</span>
+                  <span id="problem-text">Marcar como problemático</span>
+                </button>
+              </div>
             </div>
 
             <!-- Sidebar: ajustes rápidos + lista -->
@@ -285,6 +296,60 @@
               <p class="text-xs text-slate-500 font-medium mb-2">Atajos de teclado:</p>
               <div id="typing-shortcuts" class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-slate-600 dark:text-slate-400">
                 <!-- Los atajos se llenarán dinámicamente según el SO -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Problem Verbs Tab -->
+        <section id="tab-problem" class="tab-panel hidden">
+          <div class="space-y-6">
+            <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-soft p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                  📚 Verbos Problemáticos
+                  <span id="total-problem-verbs" class="text-lg text-slate-500">(0)</span>
+                </h2>
+                <div class="flex items-center gap-2">
+                  <button id="study-problem-verbs" class="rounded-xl bg-brand-600 text-white px-4 py-2 font-semibold disabled:opacity-50">Estudiar problemáticos</button>
+                  <button id="clear-all-problems" class="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-2 font-semibold">Limpiar todo</button>
+                </div>
+              </div>
+              
+              <div class="grid md:grid-cols-2 gap-4 mb-4">
+                <div class="p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800">
+                  <h3 class="font-semibold text-rose-800 dark:text-rose-200 mb-2">🚨 Marcados automáticamente</h3>
+                  <p class="text-sm text-rose-600 dark:text-rose-300">Verbos en los que has fallado al escribir</p>
+                  <div class="mt-2 text-2xl font-bold text-rose-700 dark:text-rose-300" id="auto-marked-count">0</div>
+                </div>
+                <div class="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                  <h3 class="font-semibold text-amber-800 dark:text-amber-200 mb-2">📌 Marcados manualmente</h3>
+                  <p class="text-sm text-amber-600 dark:text-amber-300">Verbos que consideras difíciles</p>
+                  <div class="mt-2 text-2xl font-bold text-amber-700 dark:text-amber-300" id="manual-marked-count">0</div>
+                </div>
+              </div>
+              
+              <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                  <h3 class="font-semibold">Lista de verbos problemáticos:</h3>
+                  <div class="flex items-center gap-2 text-sm">
+                    <label class="flex items-center gap-1">
+                      <input type="radio" name="problem-filter" value="all" checked class="w-4 h-4 accent-brand-600">
+                      Todos
+                    </label>
+                    <label class="flex items-center gap-1">
+                      <input type="radio" name="problem-filter" value="auto" class="w-4 h-4 accent-brand-600">
+                      Auto-marcados
+                    </label>
+                    <label class="flex items-center gap-1">
+                      <input type="radio" name="problem-filter" value="manual" class="w-4 h-4 accent-brand-600">
+                      Manuales
+                    </label>
+                  </div>
+                </div>
+                <div id="problem-verbs-list" class="max-h-96 overflow-auto nice-scrollbar border border-slate-200 dark:border-slate-700 rounded-xl">
+                  <!-- Lista se llenará dinámicamente -->
+                </div>
               </div>
             </div>
           </div>
@@ -534,7 +599,8 @@
       srs: 'irregular_verbs:srs',
       settings: 'irregular_verbs:settings',
       history: 'irregular_verbs:history',
-      streak: 'irregular_verbs:streak'
+      streak: 'irregular_verbs:streak',
+      problemVerbs: 'irregular_verbs:problem_verbs'
     };
 
     function loadJSON(key, fallback) {
@@ -547,6 +613,7 @@
     let settings = loadJSON(LS_KEYS.settings, { darkDefault: false, dueOnlyDefault: false, autoTts: false, ttsRate: 0.9 });
     let history = loadJSON(LS_KEYS.history, {}); // { 'YYYY-MM-DD': { reviewed, correct } }
     let streak = loadJSON(LS_KEYS.streak, { lastDay: null, count: 0 });
+    let problemVerbs = loadJSON(LS_KEYS.problemVerbs, {}); // { [id]: { markedAt, autoMarked, attempts, lastFailed } }
 
     // Normaliza y asigna IDs
     function ensureIds() {
@@ -689,6 +756,7 @@
       $('#fc-ex1').textContent = e1; $('#fc-ex2').textContent = e2; $('#fc-ex3').textContent = e3;
       $('#counter-display').textContent = `${ui.idx + 1} / ${ui.order.length}`;
       $('#flashcard').classList.remove('flipped');
+      updateProblemButtonState();
       if (ui.autoTts) speak(v.infinitive);
     }
 
@@ -762,7 +830,14 @@
       $('#t-fb-past').className = `h-5 text-sm ${pastOk ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}`;
       $('#t-fb-part').textContent = partOk ? '¡Correcto!' : `Incorrecto → ${parseOptions(v.participle)[0] || v.participle}`;
       $('#t-fb-part').className = `h-5 text-sm ${partOk ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}`;
-      if (pastOk && partOk) { typing.score++; schedule(v, 'good'); } else { schedule(v, 'hard'); }
+      if (pastOk && partOk) { 
+        typing.score++; 
+        schedule(v, 'good'); 
+      } else { 
+        schedule(v, 'hard'); 
+        // Marcar automáticamente como problemático si falla
+        markProblemVerb(v, true);
+      }
       $('#t-score').textContent = typing.score;
       typing.answered = true;
       $('#t-check').disabled = true; $('#t-show').disabled = true;
@@ -815,6 +890,151 @@
     }
 
     function typingNext() { typing.idx = (typing.idx + 1) % typing.order.length; typingLoad(); }
+
+    // ============================
+    // Sistema de Verbos Problemáticos
+    // ============================
+    function markProblemVerb(verb, isAutoMarked = false) {
+      const now = Date.now();
+      if (!problemVerbs[verb.id]) {
+        problemVerbs[verb.id] = {
+          markedAt: now,
+          autoMarked: isAutoMarked,
+          attempts: 0,
+          lastFailed: isAutoMarked ? now : null
+        };
+      } else if (isAutoMarked) {
+        problemVerbs[verb.id].lastFailed = now;
+        problemVerbs[verb.id].attempts++;
+      }
+      saveJSON(LS_KEYS.problemVerbs, problemVerbs);
+      updateProblemVerbsUI();
+    }
+
+    function unmarkProblemVerb(verb) {
+      delete problemVerbs[verb.id];
+      saveJSON(LS_KEYS.problemVerbs, problemVerbs);
+      updateProblemVerbsUI();
+    }
+
+    function isProblemVerb(verb) {
+      return !!problemVerbs[verb.id];
+    }
+
+    function getProblemVerbs(filter = 'all') {
+      const problems = Object.keys(problemVerbs).map(id => {
+        const verb = verbs.find(v => v.id === id);
+        return verb ? { verb, data: problemVerbs[id] } : null;
+      }).filter(Boolean);
+
+      if (filter === 'auto') return problems.filter(p => p.data.autoMarked);
+      if (filter === 'manual') return problems.filter(p => !p.data.autoMarked);
+      return problems;
+    }
+
+    function updateProblemVerbsUI() {
+      const total = Object.keys(problemVerbs).length;
+      const auto = getProblemVerbs('auto').length;
+      const manual = getProblemVerbs('manual').length;
+      
+      // Actualizar badge en la pestaña
+      const badge = $('#problem-count-badge');
+      if (badge) {
+        badge.textContent = total;
+        badge.classList.toggle('hidden', total === 0);
+      }
+      
+      // Actualizar contadores en la pestaña de problemáticos
+      const totalEl = $('#total-problem-verbs');
+      const autoEl = $('#auto-marked-count');
+      const manualEl = $('#manual-marked-count');
+      const studyBtn = $('#study-problem-verbs');
+      
+      if (totalEl) totalEl.textContent = `(${total})`;
+      if (autoEl) autoEl.textContent = auto;
+      if (manualEl) manualEl.textContent = manual;
+      if (studyBtn) studyBtn.disabled = total === 0;
+      
+      // Actualizar botón en flashcards
+      updateProblemButtonState();
+      
+      // Renderizar lista si estamos en la pestaña
+      const problemTab = $('#tab-problem');
+      if (problemTab && !problemTab.classList.contains('hidden')) {
+        renderProblemVerbsList();
+      }
+    }
+
+    function updateProblemButtonState() {
+      const v = ui.currentVerb();
+      if (!v) return;
+      
+      const btn = $('#toggle-problem-verb');
+      const icon = $('#problem-icon');
+      const text = $('#problem-text');
+      
+      if (!btn || !icon || !text) return;
+      
+      const isMarked = isProblemVerb(v);
+      const isAuto = isMarked && problemVerbs[v.id].autoMarked;
+      
+      if (isMarked) {
+        btn.className = 'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border transition-all bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-300';
+        icon.textContent = isAuto ? '🚨' : '📌';
+        text.textContent = isAuto ? 'Marcado automáticamente' : 'Desmarcar problemático';
+      } else {
+        btn.className = 'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border transition-all bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300';
+        icon.textContent = '📌';
+        text.textContent = 'Marcar como problemático';
+      }
+    }
+
+    function renderProblemVerbsList() {
+      const container = $('#problem-verbs-list');
+      if (!container) return;
+      
+      const filter = document.querySelector('input[name="problem-filter"]:checked')?.value || 'all';
+      const problems = getProblemVerbs(filter);
+      
+      if (problems.length === 0) {
+        container.innerHTML = '<div class="p-4 text-center text-slate-500">No hay verbos problemáticos marcados</div>';
+        return;
+      }
+      
+      // Ordenar por fecha de marcado (más recientes primero)
+      problems.sort((a, b) => b.data.markedAt - a.data.markedAt);
+      
+      container.innerHTML = problems.map(({ verb, data }) => {
+        const isAuto = data.autoMarked;
+        const markedDate = new Date(data.markedAt).toLocaleDateString();
+        const attempts = data.attempts || 0;
+        
+        return `
+          <div class="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-700 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800">
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-lg font-semibold">${verb.infinitive}</span>
+                <span class="text-sm text-slate-500">${verb.translation}</span>
+                <span class="text-xs px-2 py-1 rounded-full ${isAuto ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'}">
+                  ${isAuto ? '🚨 Auto' : '📌 Manual'}
+                </span>
+              </div>
+              <div class="text-xs text-slate-400 mt-1">
+                Marcado: ${markedDate}${attempts > 0 ? ` • ${attempts} ${attempts === 1 ? 'fallo' : 'fallos'}` : ''}
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="study-single-problem text-sm px-3 py-1 rounded-lg bg-brand-100 text-brand-700 hover:bg-brand-200 dark:bg-brand-900/30 dark:text-brand-300" data-verb-id="${verb.id}">
+                Estudiar
+              </button>
+              <button class="remove-problem text-sm px-3 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300" data-verb-id="${verb.id}">
+                Quitar
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
     function renderTypingShortcuts() {
       const shortcutsContainer = $('#typing-shortcuts');
@@ -999,6 +1219,7 @@
       $$('.tab-btn').forEach(b => b.classList.remove('bg-white', 'dark:bg-slate-900', 'shadow'));
       $(`.tab-btn[data-tab="${id}"]`).classList.add('bg-white', 'dark:bg-slate-900', 'shadow');
       if (id === 'stats') renderStats();
+      if (id === 'problem') renderProblemVerbsList();
     }
 
     function applyTheme(dark) {
@@ -1163,6 +1384,67 @@
         }
       });
 
+      // Problem verbs functionality
+      $('#toggle-problem-verb').addEventListener('click', () => {
+        const v = ui.currentVerb();
+        if (!v) return;
+        
+        if (isProblemVerb(v)) {
+          // Solo desmarcar si no es auto-marcado o si es manual
+          if (!problemVerbs[v.id].autoMarked) {
+            unmarkProblemVerb(v);
+          }
+        } else {
+          markProblemVerb(v, false); // Marcado manual
+        }
+      });
+
+      $('#study-problem-verbs').addEventListener('click', () => {
+        const problems = getProblemVerbs();
+        if (problems.length === 0) return;
+        
+        // Cambiar a flashcards y configurar orden solo con problemáticos
+        ui.order = problems.map(p => verbs.findIndex(v => v.id === p.verb.id)).filter(i => i !== -1);
+        ui.idx = 0;
+        renderFlashcard();
+        setActiveTab('flashcards');
+      });
+
+      $('#clear-all-problems').addEventListener('click', () => {
+        if (confirm('¿Estás seguro de que quieres limpiar todos los verbos problemáticos?')) {
+          problemVerbs = {};
+          saveJSON(LS_KEYS.problemVerbs, problemVerbs);
+          updateProblemVerbsUI();
+        }
+      });
+
+      // Event delegation for problem verbs list
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('study-single-problem')) {
+          const verbId = e.target.dataset.verbId;
+          const verbIndex = verbs.findIndex(v => v.id === verbId);
+          if (verbIndex !== -1) {
+            ui.order = [verbIndex];
+            ui.idx = 0;
+            renderFlashcard();
+            setActiveTab('flashcards');
+          }
+        } else if (e.target.classList.contains('remove-problem')) {
+          const verbId = e.target.dataset.verbId;
+          const verb = verbs.find(v => v.id === verbId);
+          if (verb) {
+            unmarkProblemVerb(verb);
+          }
+        }
+      });
+
+      // Problem filter radio buttons
+      document.addEventListener('change', (e) => {
+        if (e.target.name === 'problem-filter') {
+          renderProblemVerbsList();
+        }
+      });
+
       // Keybindings
       window.addEventListener('keydown', (e) => {
         if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
@@ -1202,6 +1484,8 @@
       renderTypingShortcuts();
       renderFlashcardShortcuts();
       renderMultipleChoiceShortcuts();
+      // Initialize problem verbs UI
+      updateProblemVerbsUI();
       // Bind events
       bindEvents();
       // Default tab
