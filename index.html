@@ -225,7 +225,12 @@
                   <span class="text-sm">Velocidad TTS</span>
                   <input id="range-tts" type="range" min="0.6" max="1.2" value="0.9" step="0.05" class="w-full" />
                 </label>
-                <p class="text-xs text-slate-500">Atajos: ← → navegar, espacio voltear, 1/2/3 calificar, S escuchar</p>
+                <div>
+                  <p class="text-xs text-slate-500 font-medium mb-2">Atajos de teclado:</p>
+                  <div id="flashcard-shortcuts" class="grid grid-cols-1 gap-1 text-xs text-slate-600 dark:text-slate-400">
+                    <!-- Los atajos se llenarán dinámicamente según el SO -->
+                  </div>
+                </div>
               </div>
 
               <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-soft p-4 max-h-[380px] overflow-auto nice-scrollbar">
@@ -817,6 +822,19 @@
       `;
     }
 
+    function renderFlashcardShortcuts() {
+      const shortcutsContainer = $('#flashcard-shortcuts');
+      if (!shortcutsContainer) return;
+      
+      shortcutsContainer.innerHTML = `
+        <div><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">←</kbd> <kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">→</kbd> Navegar</div>
+        <div><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">Space</kbd> Voltear tarjeta</div>
+        <div><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">1</kbd><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">2</kbd><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">3</kbd> Calificar</div>
+        <div><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">S</kbd> Escuchar</div>
+        <div><kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs">R</kbd> Tarjeta aleatoria</div>
+      `;
+    }
+
     // ============================
     // Multiple Choice
     // ============================
@@ -1079,13 +1097,18 @@
       // Keybindings
       window.addEventListener('keydown', (e) => {
         if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+        // Solo aplicar atajos de flashcards cuando esa pestaña esté activa
+        const flashcardTab = $('#tab-flashcards');
+        if (!flashcardTab || flashcardTab.classList.contains('hidden')) return;
+        
         if (e.key === ' ') { e.preventDefault(); flipCard(); }
         if (e.key === 'ArrowLeft') nav(-1);
         if (e.key === 'ArrowRight') nav(+1);
         if (e.key === '1') gradeCurrent('hard');
         if (e.key === '2') gradeCurrent('good');
         if (e.key === '3') gradeCurrent('easy');
-        if (e.key.toLowerCase() === 's') { const v = ui.currentVerb(); speak(v.infinitive); }
+        if (e.key.toLowerCase() === 's') { const v = ui.currentVerb(); if (v) speak(v.infinitive); }
+        if (e.key.toLowerCase() === 'r') { e.preventDefault(); randomCard(); }
       });
     }
 
@@ -1106,8 +1129,9 @@
       // start games
       typingStart();
       mcStart();
-      // Render shortcuts for typing section
+      // Render shortcuts for sections
       renderTypingShortcuts();
+      renderFlashcardShortcuts();
       // Bind events
       bindEvents();
       // Default tab
