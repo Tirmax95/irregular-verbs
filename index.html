@@ -266,6 +266,13 @@
               <button id="t-show" class="rounded-xl bg-amber-500 text-white px-4 py-2">Mostrar respuestas</button>
               <span class="ml-auto">Puntuación: <strong id="t-score">0</strong></span>
             </div>
+            
+            <div class="mt-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <p class="text-xs text-slate-500 font-medium mb-2">Atajos de teclado:</p>
+              <div id="typing-shortcuts" class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-slate-600 dark:text-slate-400">
+                <!-- Los atajos se llenarán dinámicamente según el SO -->
+              </div>
+            </div>
           </div>
         </section>
 
@@ -442,6 +449,10 @@
     // ============================
     const $ = (sel, root = document) => root.querySelector(sel);
     const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+    // Detectar si es Mac para mostrar los atajos correctos
+    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform) || navigator.platform === 'MacIntel';
+    const modifierKey = isMac ? 'Cmd' : 'Ctrl';
 
     const todayKey = () => new Date().toISOString().slice(0, 10);
     const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -746,6 +757,19 @@
 
     function typingNext() { typing.idx = (typing.idx + 1) % typing.order.length; typingLoad(); }
 
+    function renderTypingShortcuts() {
+      const shortcutsContainer = $('#typing-shortcuts');
+      if (!shortcutsContainer) return;
+      
+      const showKey = isMac ? 'Cmd+H' : 'Ctrl+H';
+      
+      shortcutsContainer.innerHTML = `
+        <div><kbd class="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600">Enter</kbd> Comprobar</div>
+        <div><kbd class="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600">${modifierKey}+Enter</kbd> Siguiente</div>
+        <div><kbd class="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600">${showKey}</kbd> Mostrar</div>
+      `;
+    }
+
     // ============================
     // Multiple Choice
     // ============================
@@ -932,6 +956,43 @@
       $('#typing-next').addEventListener('click', typingNext);
       $('#typing-reset').addEventListener('click', typingStart);
       $('#t-input-part').addEventListener('keypress', (e) => { if (e.key === 'Enter' && !$('#t-check').disabled) typingCheck(); });
+      
+      // Atajos de teclado específicos para la sección de escritura
+      function handleTypingKeydown(e) {
+        const modifierPressed = isMac ? e.metaKey : e.ctrlKey;
+        
+        if (e.key === 'Enter' && !modifierPressed && !$('#t-check').disabled) {
+          e.preventDefault();
+          typingCheck();
+        } else if (e.key === 'Enter' && modifierPressed) {
+          // Cmd+Enter siempre funciona para ir al siguiente, sin importar el estado
+          e.preventDefault();
+          typingNext();
+        } else if (e.key.toLowerCase() === 'h' && modifierPressed && !$('#t-show').disabled) {
+          e.preventDefault();
+          typingShow();
+        }
+      }
+      
+      // También agregar un listener global para la pestaña de escritura
+      window.addEventListener('keydown', (e) => {
+        // Solo funcionar cuando la pestaña de escritura esté activa
+        const typingTab = $('#tab-typing');
+        if (!typingTab || typingTab.classList.contains('hidden')) return;
+        
+        const modifierPressed = isMac ? e.metaKey : e.ctrlKey;
+        
+        if (e.key === 'Enter' && modifierPressed) {
+          e.preventDefault();
+          typingNext();
+        } else if (e.key.toLowerCase() === 'h' && modifierPressed && !$('#t-show').disabled) {
+          e.preventDefault();
+          typingShow();
+        }
+      });
+      
+      $('#t-input-past').addEventListener('keydown', handleTypingKeydown);
+      $('#t-input-part').addEventListener('keydown', handleTypingKeydown);
 
       // Multiple Choice
       $('#mc-next').addEventListener('click', mcNext);
@@ -984,6 +1045,8 @@
       // start games
       typingStart();
       mcStart();
+      // Render shortcuts for typing section
+      renderTypingShortcuts();
       // Bind events
       bindEvents();
       // Default tab
